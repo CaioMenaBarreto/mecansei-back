@@ -12,6 +12,14 @@ export async function getMyProducts(userId){
     return await db.query(`SELECT * FROM products WHERE "userId" = $1;`, [userId])
 }
 
-export async function buyMyProducts(id){
-    return await db.query(`UPDATE products SET vendido = true WHERE id = $1;`, [id]);
+export async function seeProducts(id){
+    return await db.query(`SELECT * FROM products WHERE id = $1;`, [id]);
+}
+
+export async function buyProducts(vendido, id) {
+    return await db.query(`UPDATE products SET vendido = $1 WHERE id = $2;`, [vendido, id]);
+};
+
+export async function deleteMyProducts(id){
+    return await db.query(`DELETE FROM products WHERE id = $1;`, [id]);
 }

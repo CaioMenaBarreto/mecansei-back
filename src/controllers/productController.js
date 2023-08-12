@@ -1,4 +1,4 @@
-import { insertProduct, getProducts, getMyProducts, buyMyProducts } from "../repositories/product.repository.js";
+import { insertProduct, getProducts, getMyProducts, seeProducts, buyProducts, deleteMyProducts } from "../repositories/product.repository.js";
 import { getSession } from "../repositories/session.repository.js";
 
 export async function postProduct(req, res) {
@@ -83,8 +83,8 @@ export async function getMyProduct(req, res) {
     }
 }
 
-export async function buyMyProduct(req, res) {
-    const { id } = req.body;
+export async function seeProduct(req, res) {
+    const { id } = req.params;
     let token = req.header('Authorization').replace('Bearer ', '');
 
     token = token.replace(/"/g, '');
@@ -100,12 +100,102 @@ export async function buyMyProduct(req, res) {
             return res.status(401).send({ error: 'Token de autenticação inválido.' });
         };
 
-        await buyMyProducts(id);
+        const product = await seeProducts(id);
 
-        res.sendStatus(200);
+        res.status(200).send(product.rows[0]);
     } catch (error) {
-        console.log("Erro ao comprar produto: ", error.message);
+        console.log("Erro ao vizualizar produto: ", error.message);
         res.status(500).send({ message: error.message });
     }
 
+}
+
+export async function buyProduct(req, res) {
+    const {id} = req.params;
+    const {vendido} = req.body;
+    let token = req.header('Authorization').replace('Bearer ', '');
+
+    token = token.replace(/"/g, '');
+
+    if (!token) {
+        return res.status(401).send({ error: "Token de autenticação ausente." });
+    };
+
+    try {
+        const user = await getSession(token);
+
+        if (!user.rows.length || user.rows[0].token !== token) {
+            return res.status(401).send({ error: 'Token de autenticação inválido.' });
+        };
+
+        const userId = await seeProducts(id);
+
+        if(user.rows[0].userId === userId.rows[0].userId){
+            return res.status(401).send({message: "Você não pode comprar os produtos que você mesmo está vendendo."});
+        };
+
+        console.log(userId, user.rows[0].userId);
+
+        await buyProducts(vendido, id);
+
+        res.sendStatus(200);
+    } catch(error) {
+        console.log("Erro ao comprar produto: ", error.message);
+        res.status(500).send({ message: error.message });
+    }
+};
+
+export async function detailMyProduct(req, res){
+    const {id} = req.params;
+    let token = req.header('Authorization').replace('Bearer ', '');
+
+    token = token.replace(/"/g, '');
+
+    if (!token) {
+        return res.status(401).send({ error: "Token de autenticação ausente." });
+    };
+
+    try {
+
+        const user = await getSession(token);
+
+        if (!user.rows.length || user.rows[0].token !== token) {
+            return res.status(401).send({ error: 'Token de autenticação inválido.' });
+        };
+
+        const detail = await seeProducts(id);
+
+        res.status(200).send(detail.rows[0]);
+    } catch(error) {
+        console.log("Erro ao ver os detalhes do seu produto: ", error.message);
+        res.status(500).send({ message: error.message });
+    }
+}
+
+export async function deleteMyProduct(req, res) {
+    const {id} = req.params;
+    let token = req.header('Authorization').replace('Bearer ', '');
+
+    token = token.replace(/"/g, '');
+
+    if (!token) {
+        return res.status(401).send({ error: "Token de autenticação ausente." });
+    };
+
+    try {
+
+        const user = await getSession(token);
+
+        if (!user.rows.length || user.rows[0].token !== token) {
+            return res.status(401).send({ error: 'Token de autenticação inválido.' });
+        };
+
+        await deleteMyProducts(id);
+
+        res.sendStatus(200);
+
+    } catch(error) {
+        console.log("Erro ao deletar o seu produto: ", error.message);
+        res.status(500).send({ message: error.message });
+    }
 }
